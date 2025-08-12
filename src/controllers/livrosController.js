@@ -1,4 +1,4 @@
-import {livros} from "../models/index.js";
+import {autores, livros} from "../models/index.js";
 
 class LivroController {
 
@@ -66,31 +66,44 @@ class LivroController {
 
   static listarLivroPorFiltro = async (req, res, next) => {
     try {
-      const {editora , titulo, minPaginas, maxPaginas } = req.query;
+      const busca = await processaBusca(req.query);
 
-      const busca = {};
-
-      if (editora) busca.editora = editora;
-      if (titulo) busca.titulo = { $regex: titulo, $options: "i" };
-
-      //transforma a propriedade numeroPaginas em um objeto
-      if (minPaginas || maxPaginas) busca.numeroPaginas = {};
-
-      // adiciona o min no objeto numeroPaginas
-      if (minPaginas) busca.numeroPaginas.$get = minPaginas;
-      // adiciona o max no objeto numeroPaginas
-      if (maxPaginas) busca.numeroPaginas.$lte = maxPaginas;
-
-      const livrosResultado = await livros.find(busca);
+      const livrosResultado = await livros
+      .find(busca)
+      .populate("autor");
 
       res.status(200).send(livrosResultado);
     } catch (erro) {
       next(erro);
     }
   }
-
-
-
 }
+
+async function processaBusca (paramentros) {
+  const {editora , titulo, minPaginas, maxPaginas, nomeAutor } = paramentros;
+
+  const busca = {};
+
+  if (editora) busca.editora = editora;
+  if (titulo) busca.titulo = { $regex: titulo, $options: "i" };
+
+  //transforma a propriedade numeroPaginas em um objeto
+  if (minPaginas || maxPaginas) busca.numeroPaginas = {};
+
+  // adiciona o min no objeto numeroPaginas
+  if (minPaginas) busca.numeroPaginas.$get = minPaginas;
+  // adiciona o max no objeto numeroPaginas
+  if (maxPaginas) busca.numeroPaginas.$lte = maxPaginas;
+
+  if(nomeAutor) {
+    const autor = await autores.findOne({ nome: { $regex: nomeAutor, $options: "i" } });
+
+    const autorId = autor._id;
+
+    busca.autor = autorId;
+  }
+
+  return busca;
+};
 
 export default LivroController
