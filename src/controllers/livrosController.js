@@ -66,12 +66,20 @@ class LivroController {
 
   static listarLivroPorFiltro = async (req, res, next) => {
     try {
-      const {editora , titulo } = req.query;
+      const {editora , titulo, minPaginas, maxPaginas } = req.query;
 
       const busca = {};
 
       if (editora) busca.editora = editora;
       if (titulo) busca.titulo = { $regex: titulo, $options: "i" };
+
+      //transforma a propriedade numeroPaginas em um objeto
+      if (minPaginas || maxPaginas) busca.numeroPaginas = {};
+
+      // adiciona o min no objeto numeroPaginas
+      if (minPaginas) busca.numeroPaginas.$get = minPaginas;
+      // adiciona o max no objeto numeroPaginas
+      if (maxPaginas) busca.numeroPaginas.$lte = maxPaginas;
 
       const livrosResultado = await livros.find(busca);
 
